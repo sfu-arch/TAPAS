@@ -1,4 +1,5 @@
 #define DEBUG_TYPE "graphgen"
+
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -6,6 +7,7 @@
 #include "Dandelion/Node.h"
 
 #include <algorithm>
+#include <experimental/iterator>
 #include <iostream>
 #include <sstream>
 
@@ -33,195 +35,304 @@ std::string printFloatingPointIEEE754(FloatingPointIEEE754 _number) {
 
 PortID Node::addDataInputPort(Node *n) {
     auto _port_info = PortID(port_data.data_input_port.size());
-    port_data.data_input_port.emplace_back(n);
+    port_data.data_input_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
+
+PortID Node::addDataInputPort(Node *n, uint32_t _id) {
+    auto _port_info = PortID(_id);
+    port_data.data_input_port.emplace_back(std::make_pair(n, _port_info));
+    return _port_info;
+}
+
 PortID Node::addDataOutputPort(Node *n) {
     auto _port_info = PortID(port_data.data_output_port.size());
-    port_data.data_output_port.emplace_back(n);
+    port_data.data_output_port.emplace_back(std::make_pair(n, _port_info));
+    return _port_info;
+}
+
+PortID Node::addDataOutputPort(Node *n, uint32_t _id) {
+    auto _port_info = PortID(_id);
+    port_data.data_output_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
 
 PortID Node::addControlInputPort(Node *n) {
     auto _port_info = PortID(port_control.control_input_port.size());
-    port_control.control_input_port.emplace_back(n);
+    port_control.control_input_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
+
+PortID Node::addControlInputPort(Node *n, uint32_t _id) {
+    auto _port_info = PortID(_id);
+    port_control.control_input_port.emplace_back(std::make_pair(n, _port_info));
+    return _port_info;
+}
+
 PortID Node::addControlOutputPort(Node *n) {
     auto _port_info = PortID(port_control.control_output_port.size());
-    port_control.control_output_port.emplace_back(n);
+    port_control.control_output_port.emplace_back(
+        std::make_pair(n, _port_info));
+    return _port_info;
+}
+
+PortID Node::addControlOutputPort(Node *n, uint32_t _id) {
+    auto _port_info = PortID(_id);
+    port_control.control_output_port.emplace_back(
+        std::make_pair(n, _port_info));
     return _port_info;
 }
 
 PortID Node::addReadMemoryReqPort(Node *const n) {
     auto _port_info = PortID(read_port_data.memory_req_port.size());
-    read_port_data.memory_req_port.emplace_back(n);
+    read_port_data.memory_req_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
+
 PortID Node::addReadMemoryRespPort(Node *const n) {
     auto _port_info = PortID(read_port_data.memory_resp_port.size());
-    read_port_data.memory_resp_port.emplace_back(n);
+    read_port_data.memory_resp_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
 
 PortID Node::addWriteMemoryReqPort(Node *const n) {
     auto _port_info = PortID(write_port_data.memory_req_port.size());
-    write_port_data.memory_req_port.emplace_back(n);
+    write_port_data.memory_req_port.emplace_back(std::make_pair(n, _port_info));
     return _port_info;
 }
+
 PortID Node::addWriteMemoryRespPort(Node *const n) {
     auto _port_info = PortID(write_port_data.memory_resp_port.size());
-    write_port_data.memory_resp_port.emplace_back(n);
+    write_port_data.memory_resp_port.emplace_back(
+        std::make_pair(n, _port_info));
     return _port_info;
+}
+
+Node *Node::returnControlOutputPortNode(uint32_t index) {
+    auto node = port_control.control_output_port.begin();
+    std::advance(node, index);
+    return node->first;
 }
 
 PortID Node::returnDataOutputPortIndex(Node *_node) {
-    auto ff =
-        std::find_if(this->port_data.data_output_port.begin(),
-                     this->port_data.data_output_port.end(),
-                     [&_node](auto &arg) -> bool { return arg == _node; });
+    auto ff = std::find_if(
+        this->port_data.data_output_port.begin(),
+        this->port_data.data_output_port.end(),
+        [&_node](auto &arg) -> bool { return arg.first == _node; });
     if (ff == this->port_data.data_output_port.end())
         assert(!"Node doesn't exist\n");
 
-    return std::distance(this->port_data.data_output_port.begin(),
-                         find(this->port_data.data_output_port.begin(),
-                              this->port_data.data_output_port.end(), _node));
+    return find_if(this->port_data.data_output_port.begin(),
+                   this->port_data.data_output_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnDataInputPortIndex(Node *_node) {
-    auto ff =
-        std::find_if(this->port_data.data_input_port.begin(),
-                     this->port_data.data_input_port.end(),
-                     [&_node](auto &arg) -> bool { return arg == _node; });
+    auto ff = std::find_if(
+        this->port_data.data_input_port.begin(),
+        this->port_data.data_input_port.end(),
+        [&_node](auto &arg) -> bool { return arg.first == _node; });
 
     if (ff == this->port_data.data_input_port.end())
         assert(!"Node doesn't exist\n");
-    return std::distance(this->port_data.data_input_port.begin(),
-                         find(this->port_data.data_input_port.begin(),
-                              this->port_data.data_input_port.end(), _node));
+    return find_if(this->port_data.data_input_port.begin(),
+                   this->port_data.data_input_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnControlOutputPortIndex(Node *_node) {
-    return std::distance(
-        this->port_control.control_output_port.begin(),
-        find(this->port_control.control_output_port.begin(),
-             this->port_control.control_output_port.end(), _node));
+    return find_if(this->port_control.control_output_port.begin(),
+                   this->port_control.control_output_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnControlInputPortIndex(Node *_node) {
-    return std::distance(
-        this->port_control.control_input_port.begin(),
-        find(this->port_control.control_input_port.begin(),
-             this->port_control.control_input_port.end(), _node));
+    return find_if(this->port_control.control_input_port.begin(),
+                   this->port_control.control_input_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
-bool Node::existControlInput(Node *_n) {
-    return find(this->port_control.control_input_port.begin(),
-                this->port_control.control_input_port.end(),
-                _n) != this->port_control.control_input_port.end();
+bool Node::existControlInput(Node *_node) {
+    return find_if(this->port_control.control_input_port.begin(),
+                   this->port_control.control_input_port.end(),
+                   [&_node](auto &arg) -> bool {
+                       return arg.first == _node;
+                   }) != this->port_control.control_input_port.end();
 }
 
-bool Node::existControlOutput(Node *_n) {
-    return find(this->port_control.control_output_port.begin(),
-                this->port_control.control_output_port.end(),
-                _n) != this->port_control.control_output_port.end();
+bool Node::existControlOutput(Node *_node) {
+    return find_if(this->port_control.control_output_port.begin(),
+                   this->port_control.control_output_port.end(),
+                   [&_node](auto &arg) -> bool {
+                       return arg.first == _node;
+                   }) != this->port_control.control_output_port.end();
 }
 
-bool Node::existDataInput(Node *_n) {
-    return find(this->port_data.data_input_port.begin(),
-                this->port_data.data_input_port.end(),
-                _n) != this->port_data.data_input_port.end();
+bool Node::existDataInput(Node *_node) {
+    return find_if(this->port_data.data_input_port.begin(),
+                   this->port_data.data_input_port.end(),
+                   [&_node](auto &arg) -> bool {
+                       return arg.first == _node;
+                   }) != this->port_data.data_input_port.end();
 }
 
-bool Node::existDataOutput(Node *_n) {
-    return find(this->port_data.data_output_port.begin(),
-                this->port_data.data_output_port.end(),
-                _n) != this->port_data.data_output_port.end();
+bool Node::existDataOutput(Node *_node) {
+    return find_if(this->port_data.data_output_port.begin(),
+                   this->port_data.data_output_port.end(),
+                   [&_node](auto &arg) -> bool {
+                       return arg.first == _node;
+                   }) != this->port_data.data_output_port.end();
 }
 
 // Return memory indexes
 PortID Node::returnMemoryReadInputPortIndex(Node *_node) {
-    return std::distance(
-        this->read_port_data.memory_req_port.begin(),
-        find(this->read_port_data.memory_req_port.begin(),
-             this->read_port_data.memory_req_port.end(), _node));
+    return find_if(this->read_port_data.memory_req_port.begin(),
+                   this->read_port_data.memory_req_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnMemoryReadOutputPortIndex(Node *_node) {
-    return std::distance(
-        this->read_port_data.memory_resp_port.begin(),
-        find(this->read_port_data.memory_resp_port.begin(),
-             this->read_port_data.memory_resp_port.end(), _node));
+    return find_if(this->read_port_data.memory_resp_port.begin(),
+                   this->read_port_data.memory_resp_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnMemoryWriteInputPortIndex(Node *_node) {
-    return std::distance(
-        this->write_port_data.memory_req_port.begin(),
-        find(this->write_port_data.memory_req_port.begin(),
-             this->write_port_data.memory_req_port.end(), _node));
+    return find_if(this->write_port_data.memory_req_port.begin(),
+                   this->write_port_data.memory_req_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
 PortID Node::returnMemoryWriteOutputPortIndex(Node *_node) {
-    return std::distance(
-        this->write_port_data.memory_resp_port.begin(),
-        find(this->write_port_data.memory_resp_port.begin(),
-             this->write_port_data.memory_resp_port.end(), _node));
+    return find_if(this->write_port_data.memory_resp_port.begin(),
+                   this->write_port_data.memory_resp_port.end(),
+                   [&_node](auto &arg) -> bool { return arg.first == _node; })
+        ->second;
 }
 
-std::list<Node *>::iterator Node::findDataInputNode(Node *_node) {
-    return find(this->port_data.data_input_port.begin(),
-                this->port_data.data_input_port.end(), _node);
+std::list<PortEntry>::iterator Node::findDataInputNode(Node *_node) {
+    return find_if(this->port_data.data_input_port.begin(),
+                   this->port_data.data_input_port.end(),
+                   [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
-std::list<Node *>::iterator Node::findDataOutputNode(Node *_node) {
-    return find(this->port_data.data_output_port.begin(),
-                this->port_data.data_output_port.end(), _node);
+std::list<PortEntry>::iterator Node::findDataOutputNode(Node *_node) {
+    return find_if(this->port_data.data_output_port.begin(),
+                   this->port_data.data_output_port.end(),
+                   [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
-std::list<Node *>::iterator Node::findControlInputNode(Node *_node) {
-    return find(this->port_control.control_input_port.begin(),
-                this->port_control.control_input_port.end(), _node);
+std::list<PortEntry>::iterator Node::findControlInputNode(Node *_node) {
+    return find_if(this->port_control.control_input_port.begin(),
+                   this->port_control.control_input_port.end(),
+                   [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
-std::list<Node *>::iterator Node::findControlOutputNode(Node *_node) {
-    return find(this->port_control.control_output_port.begin(),
-                this->port_control.control_output_port.end(), _node);
+std::list<PortEntry>::iterator Node::findControlOutputNode(Node *_node) {
+    return find_if(this->port_control.control_output_port.begin(),
+                   this->port_control.control_output_port.end(),
+                   [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
 void Node::removeNodeDataInputNode(Node *_node) {
-    this->port_data.data_input_port.remove(_node);
+    this->port_data.data_input_port.remove_if(
+        [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
 void Node::removeNodeDataOutputNode(Node *_node) {
-    this->port_data.data_output_port.remove(_node);
+    this->port_data.data_output_port.remove_if(
+        [_node](auto &arg) -> bool { return arg.first == _node; });
+
+    // Updating portIDs
+    uint32_t _id = 0;
+    for (auto &_out_node : this->port_data.data_output_port) {
+        _out_node.second.setID(_id++);
+    }
 }
 
 void Node::removeNodeControlInputNode(Node *_node) {
-    this->port_control.control_input_port.remove(_node);
+    this->port_control.control_input_port.remove_if(
+        [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
 void Node::removeNodeControlOutputNode(Node *_node) {
-    this->port_control.control_output_port.remove(_node);
+    this->port_control.control_output_port.remove_if(
+        [_node](auto &arg) -> bool { return arg.first == _node; });
 }
 
 void Node::replaceControlInputNode(Node *src, Node *tar) {
-    std::replace(this->port_control.control_input_port.begin(),
-                 this->port_control.control_input_port.end(), src, tar);
+    // std::replace(this->port_control.control_input_port.begin(),
+    // this->port_control.control_input_port.end(), src, tar);
+    auto count =
+        std::count_if(port_control.control_input_port.begin(),
+                      port_control.control_input_port.end(),
+                      [src](auto &arg) -> bool { return arg.first == src; });
+
+    assert(count == 1 &&
+           "Can not have multiple edge from one node to another!");
+
+    auto _src_node =
+        std::find_if(port_control.control_input_port.begin(),
+                     port_control.control_input_port.end(),
+                     [src](auto &arg) -> bool { return arg.first == src; });
+    _src_node->first = tar;
 }
 
 void Node::replaceControlOutputNode(Node *src, Node *tar) {
-    std::replace(port_control.control_output_port.begin(),
-                 port_control.control_output_port.end(), src, tar);
+    // We can't replace if we have multiple edge from src to dst
+    // with different port numbers
+    // std::replace(port_control.control_output_port.begin(),
+    // port_control.control_output_port.end(), src, tar);
+    auto count =
+        std::count_if(port_control.control_output_port.begin(),
+                      port_control.control_output_port.end(),
+                      [src](auto &arg) -> bool { return arg.first == src; });
+
+    assert(count == 1 &&
+           "Can not have multiple edge from one node to another!");
+
+    auto _src_node =
+        std::find_if(port_control.control_output_port.begin(),
+                     port_control.control_output_port.end(),
+                     [src](auto &arg) -> bool { return arg.first == src; });
+    _src_node->first = tar;
 }
 
 void Node::replaceDataInputNode(Node *src, Node *tar) {
-    std::replace(this->port_data.data_input_port.begin(),
-                 this->port_data.data_input_port.end(), src, tar);
+    auto count = std::count_if(
+        port_data.data_input_port.begin(), port_data.data_input_port.end(),
+        [src](auto &arg) -> bool { return arg.first == src; });
+
+    assert(count == 1 &&
+           "Can not have multiple edge from one node to another!");
+
+    auto _src_node = std::find_if(
+        port_data.data_input_port.begin(), port_data.data_input_port.end(),
+        [src](auto &arg) -> bool { return arg.first == src; });
+    _src_node->first = tar;
 }
 
 void Node::replaceDataOutputNode(Node *src, Node *tar) {
-    std::replace(port_data.data_output_port.begin(),
-                 port_data.data_output_port.end(), src, tar);
+    // std::replace(port_data.data_output_port.begin(),
+    // port_data.data_output_port.end(), src, tar);
+    auto count = std::count_if(
+        port_data.data_output_port.begin(), port_data.data_output_port.end(),
+        [src](auto &arg) -> bool { return arg.first == src; });
+
+    assert(count == 1 &&
+           "Can not have multiple edge from one node to another!");
+
+    auto _src_node = std::find_if(
+        port_data.data_output_port.begin(), port_data.data_output_port.end(),
+        [src](auto &arg) -> bool { return arg.first == src; });
+    _src_node->first = tar;
 }
 
 //===----------------------------------------------------------------------===//
@@ -585,21 +696,21 @@ ArgumentNode *ContainerNode::insertLiveOutArgument(llvm::Value *_val) {
 }
 
 uint32_t ContainerNode::findLiveInIndex(ArgumentNode *_arg_node) {
-    uint32_t c = 0;
-    for (auto &_a : live_in) {
-        if (_a->getName() == _arg_node->getName()) return c;
-        c++;
-    }
-    return c;
+    auto arg_find = std::find_if(
+        live_in.begin(), live_in.end(),
+        [_arg_node](auto &arg) -> bool { return arg.get() == _arg_node; });
+
+    ptrdiff_t pos = std::distance(live_in.begin(), arg_find);
+    return pos;
 }
 
 uint32_t ContainerNode::findLiveOutIndex(ArgumentNode *_arg_node) {
-    uint32_t c = 0;
-    for (auto &_a : live_out) {
-        if (_a->getName() == _arg_node->getName()) return c;
-        c++;
-    }
-    return c;
+    auto arg_find = std::find_if(
+        live_out.begin(), live_out.end(),
+        [_arg_node](auto &arg) -> bool { return arg.get() == _arg_node; });
+
+    ptrdiff_t pos = std::distance(live_out.begin(), arg_find);
+    return pos;
 }
 
 //===----------------------------------------------------------------------===//
@@ -677,6 +788,32 @@ std::string SplitCallNode::printOutputData(PrintType _pt, uint32_t _idx) {
 //                            BranchNode Class
 //===----------------------------------------------------------------------===//
 
+void BranchNode::replaceControlOutputNode(Node *src, Node *tar) {
+    // We can't replace if we have multiple edge from src to dst
+    // with different port numbers
+    // std::replace(port_control.control_output_port.begin(),
+    // port_control.control_output_port.end(), src, tar);
+    auto count =
+        std::count_if(outputControl_begin(), outputControl_end(),
+                      [src](auto &arg) -> bool { return arg.first == src; });
+
+    assert(count == 1 &&
+           "Can not have multiple edge from one node to another!");
+
+    auto _src_node =
+        std::find_if(outputControl_begin(), outputControl_end(),
+                     [src](auto &arg) -> bool { return arg.first == src; });
+    _src_node->first = tar;
+
+    auto _src_predicate =
+        std::find_if(output_predicate.begin(), output_predicate.end(),
+                     [src](auto &arg) -> bool { return arg.first == src; });
+    _src_predicate->first = tar;
+
+    //Make sure ordering works
+    output_predicate.splice(output_predicate.end(), output_predicate, _src_predicate);
+}
+
 std::string BranchNode::printInputEnable(PrintType _pt, uint32_t _id) {
     string _name(this->getName());
     std::replace(_name.begin(), _name.end(), '.', '_');
@@ -700,9 +837,63 @@ std::string BranchNode::printOutputEnable(PrintType _pt, uint32_t _id) {
     string _text;
     switch (_pt) {
         case PrintType::Scala:
-            _text = "$name.io.Out($id)";
-            helperReplace(_text, "$name", _name.c_str());
-            helperReplace(_text, "$id", _id);
+            // The branch is UBranch and there is no true and false outptu
+            if (this->numDataInputPort() == 0) {
+                _text = "$name.io.Out($id)";
+                helperReplace(_text, "$name", _name.c_str());
+                helperReplace(_text, "$id", _id);
+            } else {
+                // The branch is CBranch and there is true and false outptut
+                //_text = "$name.io.Out($id)";
+                // helperReplace(_text, "$name", _name.c_str());
+                // helperReplace(_text, "$id", _id);
+                auto node = this->returnControlOutputPortNode(_id);
+                uint32_t false_index = 0;
+                uint32_t true_index = 0;
+                for (auto pr : output_predicate) {
+                    if (pr.first == node) {
+                        auto result =
+                            printed_predicate.insert(std::make_pair(pr, 1));
+                        if (result.second == false) {
+                            if (pr.second == BranchNode::PredicateResult::False)
+                                false_index++;
+                            else
+                                true_index++;
+                            continue;
+                        } else {
+                            if (pr.second ==
+                                BranchNode::PredicateResult::True) {
+                                _text = "$name.io.TrueOutput($id)";
+                                helperReplace(_text, "$name", _name.c_str());
+                                helperReplace(_text, "$id", true_index);
+                            } else if (pr.second ==
+                                       BranchNode::PredicateResult::False) {
+                                _text = "$name.io.FalseOutput($id)";
+                                helperReplace(_text, "$name", _name.c_str());
+                                helperReplace(_text, "$id", false_index);
+                            }
+                            break;
+                        }
+                    }
+
+                    if (pr.second == BranchNode::PredicateResult::False)
+                        false_index++;
+                    else
+                        true_index++;
+                }
+                // auto ff = std::find_if(
+                // output_predicate.begin(), output_predicate.end(),
+                //[node](auto &arg) -> bool { return arg.first == node; });
+
+                // Getting port index
+                // uint32_t p_index = 0;
+                // for (auto _p : output_predicate) {
+                // if (_p.first == node && _p.second == ff->second)
+                // break;
+                // else if (_p.second == ff->second)
+                // p_index++;
+                //}
+            }
             break;
         default:
             break;
@@ -735,8 +926,7 @@ std::string BranchNode::printInputData(PrintType _pt, uint32_t _id) {
  * Returning address of the parent instruction
  */
 Instruction *InstructionNode::getInstruction() {
-    if(this == nullptr)
-        return nullptr;
+    if (this == nullptr) return nullptr;
     return this->parent_instruction;
 }
 
@@ -830,7 +1020,9 @@ std::string ArgumentNode::printOutputData(PrintType _pt, uint32_t _idx) {
                                   this->parent_call_node->getName());
                     helperReplace(
                         _text, "$num",
+                        //                        this->parent_call_node->findLiveOutIndex(this));
                         this->parent_call_node->findLiveInIndex(this));
+                    // this->parent_call_node->findLiveInIndex(this));
                     if (this->parent_call_node->getContainerType() ==
                         ContainerNode::LoopNodeTy)
                         helperReplace(_text, "$out", "liveIn");
@@ -988,7 +1180,7 @@ std::string FaddOperatorNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val $name = Module(new $type(NumOuts = "
-                "$num_out, ID = $id, opCode = \"$opcode\")(t = S))\n\n";
+                "$num_out, ID = $id, opCode = \"$opcode\")(t = p(FTYP)))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$num_out",
                           std::to_string(this->numDataOutputPort()));
@@ -1075,8 +1267,9 @@ std::string FdiveOperatorNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val $name = Module(new $type(NumOuts = "
-                "$num_out, ID = $id, opCode = \"$opcode\", $route_id)(t = "
-                "S))\n\n";
+                "$num_out, ID = $id, RouteID = $route_id, opCode = "
+                "\"$opcode\")(t = "
+                "p(FTYP)))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$num_out",
                           std::to_string(this->numDataOutputPort()));
@@ -1297,10 +1490,10 @@ std::string ConstFPNode::printDefinition(PrintType _pt) {
                 "  val $name = Module(new $type(value = $val"
                 ", ID = $id))\n\n";
             helperReplace(_text, "$name", _name.c_str());
-            helperReplace(_text, "$num_out",
-                          std::to_string(this->numDataOutputPort()));
+            // helperReplace(_text, "$num_out",
+            // std::to_string(this->numDataOutputPort()));
             helperReplace(_text, "$id", this->getID());
-            helperReplace(_text, "$type", "ConstFastNode");
+            helperReplace(_text, "$type", "ConstNode");
             helperReplace(_text, "$val",
                           printFloatingPointIEEE754(this->getFloatIEEE()));
 
@@ -1461,7 +1654,7 @@ std::string BranchNode::printDefinition(PrintType _pt) {
                      this->numDataInputPort() == 0)
                 _text =
                     "  val $name = Module(new $type(NumPredOps=$npo, "
-                    "NumOuts=$nout ID = "
+                    "NumOuts=$nout, ID = "
                     "$id))\n\n";
             else if (this->numControlInputPort() == 1 &&
                      this->numControlOutputPort() > 1 &&
@@ -1475,9 +1668,24 @@ std::string BranchNode::printDefinition(PrintType _pt) {
                     "$id))\n\n";
 
             if (this->numDataInputPort() > 0) {
-                helperReplace(_text, "$type", "CBranchNode");
-                helperReplace(_text, "$num_out",
-                              std::to_string(this->numControlOutputPort()));
+                _text =
+                    "  val $name = Module(new $type(NumTrue = $true, NumFalse "
+                    "= $false, ID = "
+                    "$id))\n\n";
+
+                // Getting port index
+                uint32_t p_true_index = 0;
+                uint32_t p_false_index = 0;
+                for (auto _p : output_predicate) {
+                    if (_p.second == this->PredicateResult::False)
+                        p_false_index++;
+                    else if (_p.second == this->PredicateResult::True)
+                        p_true_index++;
+                }
+                helperReplace(_text, "$type", "CBranchNodeVariable");
+                helperReplace(_text, "$false", p_false_index);
+                helperReplace(_text, "$true", p_true_index);
+
             } else
                 helperReplace(_text, "$type", "UBranchNode");
             helperReplace(_text, "$nout", this->numControlOutputPort());
@@ -1573,7 +1781,7 @@ std::string SelectNode::printInputData(PrintType _pt, uint32_t _id) {
                 _text = "$name.io.InData2";
             else
                 assert(!"Select nod can not have more than three inputs! (select, "
-              "input1, input2)");
+                        "input1, input2)");
 
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$id", _id);
@@ -1618,8 +1826,8 @@ std::string PhiSelectNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val $name = Module(new $type(NumInputs = $num_in, "
-                "NumOuts = $num_out, ID = $id))\n\n";
-            helperReplace(_text, "$type", "PhiFastNode");
+                "NumOutputs = $num_out, ID = $id))\n\n";
+            helperReplace(_text, "$type", "PhiFastNode2");
             helperReplace(_text, "$num_in",
                           std::to_string(this->numDataInputPort()));
             helperReplace(_text, "$num_out",
@@ -1888,7 +2096,7 @@ std::string LoadNode::printOutputData(PrintType _pt, uint32_t _idx) {
     switch (_pt) {
         case PrintType::Scala:
             std::replace(_name.begin(), _name.end(), '.', '_');
-            _text = "$name.io.Out.data($id)";
+            _text = "$name.io.Out($id)";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$id", _idx);
 
@@ -2138,12 +2346,12 @@ std::string ConstIntNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val $name = Module(new $type(value = $val"
-                ", NumOuts = $num_out, ID = $id))\n\n";
+                ", ID = $id))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$num_out",
                           std::to_string(this->numDataOutputPort()));
             helperReplace(_text, "$id", this->getID());
-            helperReplace(_text, "$type", "ConstFastNode");
+            helperReplace(_text, "$type", "ConstNode");
             helperReplace(_text, "$val", this->getValue());
 
             break;
@@ -2161,9 +2369,9 @@ std::string ConstIntNode::printOutputData(PrintType _pt, uint32_t _id) {
     switch (_pt) {
         case PrintType::Scala:
             std::replace(_name.begin(), _name.end(), '.', '_');
-            _text = "$name.io.Out";
+            _text = "$name.io.Out($id)";
             helperReplace(_text, "$name", _name.c_str());
-            // helperReplace(_text, "$id", _id);
+             helperReplace(_text, "$id", _id);
 
             break;
         case PrintType::Dot:
@@ -2193,52 +2401,20 @@ std::string ConstIntNode::printInputEnable(PrintType pt) {
 }
 
 //===----------------------------------------------------------------------===//
-//                            GetElementPtrArray Class
+//                            SextNode Class
 //===----------------------------------------------------------------------===//
-std::string GepArrayNode::printDefinition(PrintType _pt) {
-    string _text("");
-    string _name(this->getName());
 
+std::string SextNode::printDefinition(PrintType _pt) {
+    string _text;
+    string _name(this->getName());
     switch (_pt) {
         case PrintType::Scala:
             std::replace(_name.begin(), _name.end(), '.', '_');
-            if (this->getInstruction()->getNumOperands() == 2) {
-                _text =
-                    "  val $name = Module(new $type(NumOuts=$num_out, "
-                    "ID=$id)(numByte=$nb)(size=$size))\n\n";
-                helperReplace(_text, "$type", "GepArrayOneNode");
-                helperReplace(_text, "$nb", gep_info.array_size);
-                helperReplace(_text, "$size", gep_info.length);
-            } else {
-                _text =
-                    "  val $name = Module(new $type(NumOuts=$num_out, "
-                    "ID=$id)(numByte=$nb)(size=$size))\n\n";
-                helperReplace(_text, "$type", "GepArrayTwoNode");
-                helperReplace(_text, "$nb", gep_info.array_size);
-                helperReplace(_text, "$size", gep_info.length);
-            }
-
+            _text = "  val $name = Module(new $type())\n\n";
             helperReplace(_text, "$name", _name.c_str());
-            helperReplace(_text, "$id", std::to_string(this->getID()));
             helperReplace(_text, "$num_out",
                           std::to_string(this->numDataOutputPort()));
-
-            break;
-        default:
-            assert(!"Don't support!");
-    }
-    return _text;
-}
-
-std::string GepArrayNode::printInputEnable(PrintType pt, uint32_t _id) {
-    string _text;
-    string _name(this->getName());
-    switch (pt) {
-        case PrintType::Scala:
-            std::replace(_name.begin(), _name.end(), '.', '_');
-            _text = "$name.io.enable($id)";
-            helperReplace(_text, "$name", _name.c_str());
-            helperReplace(_text, "$id", _id);
+            helperReplace(_text, "$type", "SextNode");
 
             break;
         case PrintType::Dot:
@@ -2249,7 +2425,41 @@ std::string GepArrayNode::printInputEnable(PrintType pt, uint32_t _id) {
     return _text;
 }
 
-std::string GepArrayNode::printInputEnable(PrintType pt) {
+std::string SextNode::printInputData(PrintType _pt, uint32_t _id) {
+    string _name(this->getName());
+    std::replace(_name.begin(), _name.end(), '.', '_');
+    string _text;
+    switch (_pt) {
+        case PrintType::Scala:
+            _text = "$name.io.Input";
+            helperReplace(_text, "$name", _name.c_str());
+            break;
+        default:
+            break;
+    }
+
+    return _text;
+}
+
+std::string SextNode::printOutputData(PrintType _pt, uint32_t _id) {
+    string _text;
+    string _name(this->getName());
+    switch (_pt) {
+        case PrintType::Scala:
+            std::replace(_name.begin(), _name.end(), '.', '_');
+            _text = "$name.io.Out";
+            helperReplace(_text, "$name", _name.c_str());
+
+            break;
+        case PrintType::Dot:
+            assert(!"Dot file format is not supported!");
+        default:
+            assert(!"Uknown print type!");
+    }
+    return _text;
+}
+
+std::string SextNode::printInputEnable(PrintType pt) {
     string _text;
     string _name(this->getName());
     switch (pt) {
@@ -2267,15 +2477,21 @@ std::string GepArrayNode::printInputEnable(PrintType pt) {
     return _text;
 }
 
-std::string GepArrayNode::printOutputData(PrintType _pt, uint32_t _idx) {
+//===----------------------------------------------------------------------===//
+//                            ZextNode Class
+//===----------------------------------------------------------------------===//
+
+std::string ZextNode::printDefinition(PrintType _pt) {
     string _text;
     string _name(this->getName());
     switch (_pt) {
         case PrintType::Scala:
             std::replace(_name.begin(), _name.end(), '.', '_');
-            _text = "$name.io.Out.data($id)";
+            _text = "  val $name = Module(new $type())\n\n";
             helperReplace(_text, "$name", _name.c_str());
-            helperReplace(_text, "$id", _idx);
+            helperReplace(_text, "$num_out",
+                          std::to_string(this->numDataOutputPort()));
+            helperReplace(_text, "$type", "ZextNode");
 
             break;
         case PrintType::Dot:
@@ -2286,19 +2502,13 @@ std::string GepArrayNode::printOutputData(PrintType _pt, uint32_t _idx) {
     return _text;
 }
 
-std::string GepArrayNode::printInputData(PrintType _pt, uint32_t _id) {
+std::string ZextNode::printInputData(PrintType _pt, uint32_t _id) {
     string _name(this->getName());
     std::replace(_name.begin(), _name.end(), '.', '_');
     string _text;
     switch (_pt) {
         case PrintType::Scala:
-            if (_id == 0)
-                _text = "$name.io.baseAddress";
-            else if (_id == 1)
-                _text = "$name.io.idx1";
-            else
-                _text = "$name.io.idx2";
-
+            _text = "$name.io.Input";
             helperReplace(_text, "$name", _name.c_str());
             break;
         default:
@@ -2307,47 +2517,317 @@ std::string GepArrayNode::printInputData(PrintType _pt, uint32_t _id) {
 
     return _text;
 }
+
+std::string ZextNode::printOutputData(PrintType _pt, uint32_t _id) {
+    string _text;
+    string _name(this->getName());
+    switch (_pt) {
+        case PrintType::Scala:
+            std::replace(_name.begin(), _name.end(), '.', '_');
+            _text = "$name.io.Out";
+            helperReplace(_text, "$name", _name.c_str());
+
+            break;
+        case PrintType::Dot:
+            assert(!"Dot file format is not supported!");
+        default:
+            assert(!"Uknown print type!");
+    }
+    return _text;
+}
+
+std::string ZextNode::printInputEnable(PrintType pt) {
+    string _text;
+    string _name(this->getName());
+    switch (pt) {
+        case PrintType::Scala:
+            std::replace(_name.begin(), _name.end(), '.', '_');
+            _text = "$name.io.enable";
+            helperReplace(_text, "$name", _name.c_str());
+
+            break;
+        case PrintType::Dot:
+            assert(!"Dot file format is not supported!");
+        default:
+            assert(!"Uknown print type!");
+    }
+    return _text;
+}
+
+//===----------------------------------------------------------------------===//
+//                            GetElementPtrArray Class
+//===----------------------------------------------------------------------===//
+// std::string GepArrayNode::printDefinition(PrintType _pt) {
+// string _text("");
+// string _name(this->getName());
+
+// switch (_pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+// if (this->getInstruction()->getNumOperands() == 2) {
+//_text =
+//"  val $name = Module(new $type(NumOuts=$num_out, "
+//"ID=$id)(numByte=$nb)(size=$size))\n\n";
+// helperReplace(_text, "$type", "GepArrayOneNode");
+// helperReplace(_text, "$nb", gep_info.array_size);
+// helperReplace(_text, "$size", gep_info.length);
+//} else {
+//_text =
+//"  val $name = Module(new $type(NumOuts=$num_out, "
+//"ID=$id)(numByte=$nb)(size=$size))\n\n";
+// helperReplace(_text, "$type", "GepArrayTwoNode");
+// helperReplace(_text, "$nb", gep_info.array_size);
+// helperReplace(_text, "$size", gep_info.length);
+//}
+
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", std::to_string(this->getID()));
+// helperReplace(_text, "$num_out",
+// std::to_string(this->numDataOutputPort()));
+
+// break;
+// default:
+// assert(!"Don't support!");
+//}
+// return _text;
+//}
+
+// std::string GepArrayNode::printInputEnable(PrintType pt, uint32_t _id) {
+// string _text;
+// string _name(this->getName());
+// switch (pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.enable($id)";
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", _id);
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepArrayNode::printInputEnable(PrintType pt) {
+// string _text;
+// string _name(this->getName());
+// switch (pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.enable";
+// helperReplace(_text, "$name", _name.c_str());
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepArrayNode::printOutputData(PrintType _pt, uint32_t _idx) {
+// string _text;
+// string _name(this->getName());
+// switch (_pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.Out.data($id)";
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", _idx);
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepArrayNode::printInputData(PrintType _pt, uint32_t _id) {
+// string _name(this->getName());
+// std::replace(_name.begin(), _name.end(), '.', '_');
+// string _text;
+// switch (_pt) {
+// case PrintType::Scala:
+// if (_id == 0)
+//_text = "$name.io.baseAddress";
+// else if (_id == 1)
+//_text = "$name.io.idx1";
+// else
+//_text = "$name.io.idx2";
+
+// helperReplace(_text, "$name", _name.c_str());
+// break;
+// default:
+// break;
+//}
+
+// return _text;
+//}
 
 //===----------------------------------------------------------------------===//
 //                            GetElementPtrStruct Class
 //===----------------------------------------------------------------------===//
-std::string GepStructNode::printDefinition(PrintType _pt) {
+// std::string GepStructNode::printDefinition(PrintType _pt) {
+// string _text("");
+// string _name(this->getName());
+
+// switch (_pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+// if (this->getInstruction()->getNumOperands() == 2) {
+//_text =
+//"  val $name = Module(new $type(NumOuts=$num_out, "
+//"ID=$id)(numByte=List($<input_vector>)))\n\n";
+// helperReplace(_text, "$type", "GepStructOneNode");
+// helperReplace(_text, "$<input_vector>", gep_info.element_size,
+//",");
+//// helperReplace(_text, "$nb1", num_byte[0]);
+//} else {
+//_text =
+//"  val $name = Module(new $type(NumOuts=$num_out, "
+//"ID=$id)(numByte1=$nb1, numByte2=$nb2))\n\n";
+// helperReplace(_text, "$type", "GepArrayTwoNode");
+//// helperReplace(_text, "$nb1", num_byte[0]);
+//// helperReplace(_text, "$nb2", num_byte[1]);
+//}
+
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", std::to_string(this->getID()));
+// helperReplace(_text, "$num_out",
+// std::to_string(this->numDataOutputPort()));
+
+// break;
+// default:
+// assert(!"Don't support!");
+//}
+// return _text;
+//}
+
+// std::string GepStructNode::printInputEnable(PrintType pt, uint32_t _id) {
+// string _text;
+// string _name(this->getName());
+// switch (pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.enable($id)";
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", _id);
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepStructNode::printInputEnable(PrintType pt) {
+// string _text;
+// string _name(this->getName());
+// switch (pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.enable";
+// helperReplace(_text, "$name", _name.c_str());
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepStructNode::printOutputData(PrintType _pt, uint32_t _idx) {
+// string _text;
+// string _name(this->getName());
+// switch (_pt) {
+// case PrintType::Scala:
+// std::replace(_name.begin(), _name.end(), '.', '_');
+//_text = "$name.io.Out.data($id)";
+// helperReplace(_text, "$name", _name.c_str());
+// helperReplace(_text, "$id", _idx);
+
+// break;
+// case PrintType::Dot:
+// assert(!"Dot file format is not supported!");
+// default:
+// assert(!"Uknown print type!");
+//}
+// return _text;
+//}
+
+// std::string GepStructNode::printInputData(PrintType _pt, uint32_t _id) {
+// string _name(this->getName());
+// std::replace(_name.begin(), _name.end(), '.', '_');
+// string _text;
+// switch (_pt) {
+// case PrintType::Scala:
+// if (_id == 0)
+//_text = "$name.io.baseAddress";
+// else if (_id == 1)
+//_text = "$name.io.idx1";
+// else
+//_text = "$name.io.idx2";
+
+// helperReplace(_text, "$name", _name.c_str());
+// break;
+// default:
+// break;
+//}
+
+// return _text;
+//}
+
+//===----------------------------------------------------------------------===//
+//                            GetElementPtrStruct Class
+//===----------------------------------------------------------------------===//
+std::string GepNode::printDefinition(PrintType _pt) {
     string _text("");
     string _name(this->getName());
 
     switch (_pt) {
-        case PrintType::Scala:
+        case PrintType::Scala: {
             std::replace(_name.begin(), _name.end(), '.', '_');
-            if (this->getInstruction()->getNumOperands() == 2) {
-                _text =
-                    "  val $name = Module(new $type(NumOuts=$num_out, "
-                    "ID=$id)(numByte=List($<input_vector>)))\n\n";
-                helperReplace(_text, "$type", "GepStructOneNode");
-                helperReplace(_text, "$<input_vector>", gep_info.element_size,
-                              ",");
-                // helperReplace(_text, "$nb1", num_byte[0]);
-            } else {
-                _text =
-                    "  val $name = Module(new $type(NumOuts=$num_out, "
-                    "ID=$id)(numByte1=$nb1, numByte2=$nb2))\n\n";
-                helperReplace(_text, "$type", "GepArrayTwoNode");
-                // helperReplace(_text, "$nb1", num_byte[0]);
-                // helperReplace(_text, "$nb2", num_byte[1]);
-            }
-
+            _text =
+                "  val $name = Module(new $type(NumIns = $num_ins, "
+                "NumOuts=$num_out, "
+                "ID=$id)(ElementSize = $size, ArraySize = $array))\n\n";
+            helperReplace(_text, "$type", "GepNode");
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$id", std::to_string(this->getID()));
             helperReplace(_text, "$num_out",
                           std::to_string(this->numDataOutputPort()));
 
+            // The first input is always baseaddress
+            helperReplace(_text, "$num_ins",
+                          std::to_string(this->numDataInputPort() - 1));
+
+            stringstream _array;
+            std::copy(this->gep_info.element_size.begin(),
+                      std::prev(this->gep_info.element_size.end()),
+                      std::experimental::make_ostream_joiner(_array, ", "));
+            helperReplace(_text, "$size",
+                          *std::prev(this->gep_info.element_size.end()));
+            helperReplace(_text, "$array", "List(" + _array.str() + ")");
+
             break;
+        }
         default:
             assert(!"Don't support!");
     }
     return _text;
 }
 
-std::string GepStructNode::printInputEnable(PrintType pt, uint32_t _id) {
+std::string GepNode::printInputEnable(PrintType pt, uint32_t _id) {
     string _text;
     string _name(this->getName());
     switch (pt) {
@@ -2366,7 +2846,7 @@ std::string GepStructNode::printInputEnable(PrintType pt, uint32_t _id) {
     return _text;
 }
 
-std::string GepStructNode::printInputEnable(PrintType pt) {
+std::string GepNode::printInputEnable(PrintType pt) {
     string _text;
     string _name(this->getName());
     switch (pt) {
@@ -2384,13 +2864,13 @@ std::string GepStructNode::printInputEnable(PrintType pt) {
     return _text;
 }
 
-std::string GepStructNode::printOutputData(PrintType _pt, uint32_t _idx) {
+std::string GepNode::printOutputData(PrintType _pt, uint32_t _idx) {
     string _text;
     string _name(this->getName());
     switch (_pt) {
         case PrintType::Scala:
             std::replace(_name.begin(), _name.end(), '.', '_');
-            _text = "$name.io.Out.data($id)";
+            _text = "$name.io.Out($id)";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$id", _idx);
 
@@ -2403,20 +2883,24 @@ std::string GepStructNode::printOutputData(PrintType _pt, uint32_t _idx) {
     return _text;
 }
 
-std::string GepStructNode::printInputData(PrintType _pt, uint32_t _id) {
+std::string GepNode::printInputData(PrintType _pt, uint32_t _id) {
     string _name(this->getName());
     std::replace(_name.begin(), _name.end(), '.', '_');
     string _text;
     switch (_pt) {
         case PrintType::Scala:
-            if (_id == 0)
-                _text = "$name.io.baseAddress";
-            else if (_id == 1)
-                _text = "$name.io.idx1";
+            if (_id == 0) _text = "$name.io.baseAddress";
+            // else if (_id == 1){
+            //    if(this->numDataInputPort() == 2)
+            //        _text = "$name.io.idx";
+            //    else
+            //        _text = "$name.io.idx1";
+            //}
             else
-                _text = "$name.io.idx2";
+                _text = "$name.io.idx($ix)";
 
             helperReplace(_text, "$name", _name.c_str());
+            helperReplace(_text, "$ix", _id - 1);
             break;
         default:
             break;
@@ -2502,14 +2986,19 @@ std::string LoopNode::printOutputEnable(PrintType _pt, uint32_t _id) {
     string _name(this->getName());
     std::replace(_name.begin(), _name.end(), '.', '_');
     string _text;
+    auto node = this->returnControlOutputPortNode(_id);
+    auto node_t =
+        find_if(port_type.begin(), port_type.end(),
+                [node](auto _nt) -> bool { return _nt.first == node; });
+
     switch (_pt) {
         case PrintType::Scala:
-            if (_id == 0)
+            if (node_t->second == PortType::EndEnable)
                 _text = "$name.io.endEnable";
-            else if (_id == 1)
+            else if (node_t->second == PortType::Active)
                 _text = "$name.io.activate";
-            else
-                _text = "$name.io.activate";
+            else if (node_t->second == PortType::Enable)
+                _text = "$name.io.AAAA";
             //_text = "UKNOWN";
             helperReplace(_text, "$name", _name.c_str());
             break;
@@ -2559,8 +3048,7 @@ std::string ReattachNode::printDefinition(PrintType _pt) {
                 "$num_out, ID = $id))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             if (this->numDataInputPort() == 0)
-                helperReplace(_text, "$num_out",
-                              std::to_string(1));
+                helperReplace(_text, "$num_out", std::to_string(1));
             else
                 helperReplace(_text, "$num_out",
                               std::to_string(this->numDataInputPort()));
@@ -2834,7 +3322,7 @@ std::string AllocaNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val $name = Module(new $type(NumOuts=$num_out, ID = $id"
-                ", RouteID=$rid, NumOuts=$num_out))\n\n";
+                ", RouteID=$rid))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$id", this->getID());
             helperReplace(_text, "$num_out", this->numDataOutputPort());
@@ -3290,7 +3778,7 @@ std::string FloatingPointNode::printDefinition(PrintType _pt) {
             std::replace(_name.begin(), _name.end(), '.', '_');
             _text =
                 "  val SharedFPU = Module(new SharedFPU(NumOps = $op, "
-                "PipeDepth = 32)(t = S))\n\n";
+                "PipeDepth = 32)(t = p(FTYP)))\n\n";
             helperReplace(_text, "$name", _name.c_str());
             helperReplace(_text, "$op", this->numReadDataInputPort());
 

@@ -1,4 +1,5 @@
 #define DEBUG_TYPE "dandelion-debug"
+
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/BasicAliasAnalysis.h"
@@ -21,13 +22,17 @@
     (LLVM_VERSION_MAJOR < (major) ||  \
      LLVM_VERSION_MAJOR == (major) && LLVM_VERSION_MINOR <= (minor))
 #if LLVM_VERSION_GE(3, 7)
+
 #include "llvm/IR/LegacyPassManager.h"
+
 #else
 #include "llvm/PassManager.h"
 #endif
 #if LLVM_VERSION_GE(4, 0)
+
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+
 #else
 #include "llvm/Bitcode/ReaderWriter.h"
 #endif
@@ -83,28 +88,34 @@ using llvm::sys::ExecuteAndWait;
 using llvm::sys::findProgramByName;
 using llvm::legacy::PassManager;
 
+static cl::OptionCategory dandelionCategory{"dandelion options"};
+
 cl::opt<string> inPath(cl::Positional, cl::desc("<Module to analyze>"),
                        cl::value_desc("bitcode filename"), cl::init(""),
-                       cl::Required);
+                       cl::Required, cl::cat{dandelionCategory});
 
 cl::opt<string> XKETCHName("fn-name", cl::desc("Target function name"),
-                           cl::value_desc("Function name"), cl::Required);
+                           cl::value_desc("Function name"), cl::Required,
+                           cl::cat{dandelionCategory});
 
 cl::opt<string> config_path("config", cl::desc("Target function name"),
-                           cl::value_desc("config_file"), cl::Required);
+                            cl::value_desc("config_file"), cl::Required,
+                            cl::cat{dandelionCategory});
 
 cl::opt<bool> aaTrace("aa-trace", cl::desc("Alias analysis trace"),
-                      cl::value_desc("T/F {default = true}"), cl::init(false));
+                      cl::value_desc("T/F {default = true}"), cl::init(false),
+                      cl::cat{dandelionCategory}, cl::cat{dandelionCategory});
 
 cl::opt<bool> lExtract("l-ex", cl::desc("Extracting loops"),
-                       cl::value_desc("T/F {default = false}"),
-                       cl::init(false));
+                       cl::value_desc("T/F {default = false}"), cl::init(false),
+                       cl::cat{dandelionCategory});
 
 cl::opt<bool> testCase("test-file", cl::desc("Printing Test file"),
-                       cl::value_desc("T/F {default = True}"), cl::init(true));
+                       cl::value_desc("T/F {default = True}"), cl::init(true),
+                       cl::cat{dandelionCategory});
 
-cl::opt<string> outFile("o", cl::desc("Xketch output file"),
-                        cl::value_desc("filename"), cl::init(""));
+cl::opt<string> outFile("o", cl::desc("tapas output file"),
+                        cl::value_desc("filename"), cl::init(""), cl::cat{dandelionCategory});
 
 static cl::opt<char> optLevel(
     "O", cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
@@ -305,7 +316,7 @@ static void graphGen(Module &m) {
     }
 
     std::error_code errc;
-    raw_fd_ostream out(outFile+".scala", errc, sys::fs::F_None);
+    raw_fd_ostream out(outFile + ".scala", errc, sys::fs::F_None);
 
     // raw_fd_ostream test(outFile+"_test.scala", errc, sys::fs::F_None);
 
@@ -320,10 +331,18 @@ static void graphGen(Module &m) {
 }
 
 /**
+ * Running gepsplitter
+ */
+static void splitGeps(Function &F) {
+    legacy::FunctionPassManager FPM(F.getParent());
+    FPM.add(new gepsplitter::GEPSplitter());
+    FPM.run(F);
+}
+
+/**
  * Function lists
  */
 static void runGraphGen(Module &M) {
-
     // Check wether xketch outpufile name has been specified
     if (outFile.getValue() == "") {
         errs() << "o command line option must be specified.\n";
@@ -331,18 +350,18 @@ static void runGraphGen(Module &M) {
     }
 
     std::error_code errc;
-    raw_fd_ostream out(outFile+".scala", errc, sys::fs::F_None);
+    raw_fd_ostream out(outFile + ".scala", errc, sys::fs::F_None);
 
     legacy::PassManager pm;
-    //Usefull passes
-    //pm.add(llvm::createCFGSimplificationPass());
-    //pm.add(new helpers::GEPAddrCalculation(XKETCHName));
+    // Usefull passes
+    // pm.add(llvm::createCFGSimplificationPass());
+    // pm.add(new helpers::GEPAddrCalculation(XKETCHName));
     pm.add((llvm::createStripDeadDebugInfoPass()));
-//    pm.add(llvm::createLoopSimplifyPass());
+    //    pm.add(llvm::createLoopSimplifyPass());
     pm.add(new helpers::GepInformation(XKETCHName));
     pm.add(new LoopInfoWrapperPass());
-    //pm.add(new helpers::CallInstSpliter(XKETCHName));
-    pm.add(new graphgen::GraphGeneratorPass(NodeInfo(0,XKETCHName), out));
+    // pm.add(new helpers::CallInstSpliter(XKETCHName));
+    pm.add(new graphgen::GraphGeneratorPass(NodeInfo(0, XKETCHName), out));
     pm.add(createVerifierPass());
     pm.run(M);
 }
@@ -364,6 +383,7 @@ int main(int argc, char **argv) {
     sys::PrintStackTraceOnErrorSignal(argv[0]);
     llvm::PrettyStackTraceProgram X(argc, argv);
     llvm_shutdown_obj shutdown;
+    cl::HideUnrelatedOptions(dandelionCategory);
     cl::ParseCommandLineOptions(argc, argv);
 
     // Construct an IR file from the filename passed on the command line.
@@ -377,21 +397,20 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    // Calling graphgen pass on selected functions
-    // TODO here we should iterate over list of choosen functions
-    //for (auto &F : *module) {
-        //if (F.isDeclaration() || F.getName() != XKETCHName) continue;
-        //else
-            //runGraphGen(F);
-    //}
+    // Simplifing the gep instructions
+    for (auto &F : *module) {
+        if (F.isDeclaration() || F.getName() != XKETCHName)
+            continue;
+        else
+            splitGeps(F);
+    }
+
     runGraphGen(*module);
 
     // Generating graph
-    //graphGen(*module);
+    // graphGen(*module);
 
     // saveModule(*module, "final.bc");
-
-    // common::PrintFunctionDFG(*module);
 
     return 0;
 }

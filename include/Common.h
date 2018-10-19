@@ -19,63 +19,53 @@
 #include <sstream>
 #include <string>
 
-#define WARNING(x)                                             \
-    do {                                                       \
-        std::cout << "\033[1;31m[WARNING] \033[0m"             \
-                  << "\033[1;33m" << x <<" \033[0m" << std::endl; \
+#define WARNING(x)                                                 \
+    do {                                                           \
+        std::cout << "\033[1;31m[WARNING] \033[0m"                 \
+                  << "\033[1;33m" << x << " \033[0m" << std::endl; \
     } while (0)
+
+#define ASSERTION(x)                                 \
+    do {                                             \
+        std::cout << "\033[1;35m" << x << "\033[0m"; \
+    } while (0)  //<< "\033[1;33m" << x << " \033[0m" << std::endl; \
+    } while (0)
+
+#define PURPLE(x) "\033[1;35m" << x << "\033[0m";
 
 using namespace std;
 using namespace llvm;
 
 namespace common {
 
-
 /**
  * Implimentaiton of FloatingPointIEEE754
  */
 union FloatingPointIEEE754 {
-    struct ieee754{
-        ieee754():mantissa(0), exponent(0), sign(0){}
-        unsigned int mantissa: 23;
-        unsigned int exponent: 8;
-        unsigned int sign: 1;
+    struct ieee754 {
+        ieee754() : mantissa(0), exponent(0), sign(0) {}
+        unsigned int mantissa : 23;
+        unsigned int exponent : 8;
+        unsigned int sign : 1;
     };
     ieee754 raw;
     unsigned int bits;
     float f;
 
-    FloatingPointIEEE754():f(0){}
+    FloatingPointIEEE754() : f(0) {}
 };
 
 // Structures
-struct GepOne {
-    int64_t index;
-    int64_t numByte;
-};
-
-struct GepTwo {
-    int64_t index1;
-    int64_t numByte1;
-    int64_t index2;
-    int64_t numByte2;
-};
-
-struct GepArrayInfo {
-    uint32_t array_size;
-    uint32_t length;
-
-    GepArrayInfo(uint32_t _size, uint32_t _l) : array_size(_size), length(_l) {}
-    GepArrayInfo() : array_size(0), length(0) {}
-};
-
-struct GepStructInfo {
+struct GepInfo {
+    uint32_t overall_size;
     std::vector<uint32_t> element_size;
 
-    GepStructInfo() { element_size.clear(); }
+    GepInfo() : overall_size(0) { element_size.clear(); }
 
-    GepStructInfo(std::vector<uint32_t> _input_elements)
-        : element_size(_input_elements) {}
+    GepInfo(std::vector<uint32_t> _input_elements)
+        : element_size(_input_elements) {
+        overall_size = _input_elements.back();
+    }
 };
 
 // Functions
@@ -211,44 +201,6 @@ class LabelUID : public FunctionPass, public InstVisitor<LabelUID> {
     }
 };
 
-class GEPAddrCalculation : public ModulePass,
-                           public InstVisitor<GEPAddrCalculation> {
-    friend class InstVisitor<GEPAddrCalculation>;
-
-    void visitGetElementPtrInst(llvm::GetElementPtrInst &I);
-    void visitSExtInst(Instruction &I);
-
-    map<Value *, uint64_t> values;
-    uint64_t counter;
-
-   public:
-    static char ID;
-
-    // Gep containers
-    std::map<llvm::Instruction *, common::GepOne> SingleGepIns;
-    std::map<llvm::Instruction *, common::GepTwo> TwoGepIns;
-
-    // Function name
-    llvm::StringRef function_name;
-
-    GEPAddrCalculation(llvm::StringRef FN)
-        : ModulePass(ID), function_name(FN), counter(0) {}
-
-    bool doInitialization(Module &) override {
-        counter = 0;
-        values.clear();
-        return false;
-    };
-
-    bool doFinalization(Module &) override { return true; };
-
-    bool runOnModule(Module &) override;
-
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
-        AU.setPreservesAll();
-    }
-};
-
 class GepInformation : public ModulePass, public InstVisitor<GepInformation> {
     friend class InstVisitor<GepInformation>;
 
@@ -258,8 +210,7 @@ class GepInformation : public ModulePass, public InstVisitor<GepInformation> {
     static char ID;
 
     // Gep containers
-    std::map<llvm::Instruction *, common::GepStructInfo> GepStruct;
-    std::map<llvm::Instruction *, common::GepArrayInfo> GepArray;
+    std::map<llvm::Instruction *, common::GepInfo> GepAddress;
 
     // Function name
     llvm::StringRef function_name;
@@ -297,11 +248,12 @@ class InstCounter : public llvm::ModulePass {
     }
 };
 
-class CallInstSpliter: public ModulePass, public InstVisitor<CallInstSpliter> {
+class CallInstSpliter : public ModulePass, public InstVisitor<CallInstSpliter> {
     friend class InstVisitor<CallInstSpliter>;
-    private:
 
+   private:
     llvm::SmallVector<llvm::CallInst *, 10> call_container;
+
    public:
     static char ID;
 
@@ -309,7 +261,8 @@ class CallInstSpliter: public ModulePass, public InstVisitor<CallInstSpliter> {
     llvm::StringRef function_name;
 
     CallInstSpliter() : llvm::ModulePass(ID), function_name("") {}
-    CallInstSpliter(llvm::StringRef fn) : llvm::ModulePass(ID), function_name(fn) {}
+    CallInstSpliter(llvm::StringRef fn)
+        : llvm::ModulePass(ID), function_name(fn) {}
 
     bool doInitialization(llvm::Module &) override;
     bool doFinalization(llvm::Module &) override;
@@ -321,7 +274,6 @@ class CallInstSpliter: public ModulePass, public InstVisitor<CallInstSpliter> {
 
     void visitCallInst(llvm::CallInst &Inst);
 };
-
 }
 
 #endif

@@ -16,7 +16,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++14 -fno-rtti -Wall -fvisibility=hidde")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++14 -fno-rtti -Wall \
-    -fno-omit-frame-pointer -Wno-unused-function")
+    -fno-omit-frame-pointer -Wno-unused-function -fno-limit-debug-info")
 
 if(APPLE)
     set(CMAKE_MODULE_LINKER_FLAGS "-undefined dynamic_lookup")
@@ -62,7 +62,8 @@ message("LLVM STATUS:
 # Now set the LLVM header and library paths:
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
-#link_directories(/p-ssd/modules/jsoncpp/lib/x86_64-linux-gnu)
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
 add_definitions(${LLVM_DEFINITIONS})
 
 ############## LLVM CONFIGURATION #################
@@ -82,4 +83,4 @@ set(CMAKE_TEMP_LIBRARY_PATH "${PROJECT_BINARY_DIR}/lib")
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-ADD_DEPENDENCIES(xketch LuaCppTemplater)
+#ADD_DEPENDENCIES(xketch LuaCppTemplater)
