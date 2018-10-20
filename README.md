@@ -1,3 +1,18 @@
+# TAPAS: Generating Parallel Accelerators fromParallel Programs
+### Citation
+
+
+```
+	@inproceedings{margem2018tapas,
+		title={TAPAS: Generating Parallel Accelerators from Parallel Programs},
+		author={Margerm, Steven and Amirali, Sharifian and Guha, Apala and Shriraman, Arrvindh},
+		booktitle={Microarchitecture (MICRO), 2018 51th Annual IEEE/ACM International Symposium on},
+		pages={1--14},
+		year={2018},
+		organization={IEEE}
+	
+```
+
 Getting Started
 =======
 Official supported environment for building and running TAPAS is ubuntu 16.04. You have to run these commands to install required packages from ubuntu package repositories :
