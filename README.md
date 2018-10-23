@@ -90,10 +90,11 @@ Generic Options:
 Extra Documentation
 =======
 For more information you can look at the wiki.
+https://github.com/sfu-arch/dandelion-lib/wiki
 
 ## Contributors
  - Amirali Sharifian (Simon Fraser University)
  - Steven Margem (Simon Fraser University)
  - Navid Rahimi (Simon Fraser University)
  - Apala Guha (Simon Fraser University)
- - Arrvindh Shriraman
+ - Arrvindh Shriraman (Simon Fraser University)
